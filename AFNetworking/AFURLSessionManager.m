@@ -21,6 +21,7 @@
 
 #import "AFURLSessionManager.h"
 #import <objc/runtime.h>
+#import "NSData+OADataHelpers.h"
 
 #ifndef NSFoundationVersionNumber_iOS_8_0
 #define NSFoundationVersionNumber_With_Fixed_5871104061079552_bug 1140.11
@@ -223,8 +224,18 @@ didCompleteWithError:(NSError *)error
     } else {
         dispatch_async(url_session_manager_processing_queue(), ^{
             NSError *serializationError = nil;
-            responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&serializationError];
-
+            
+            NSString *tempStr1 = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            if (!tempStr1) {
+                //自己修改的代码不是原生AFNetWorking的代码。
+                //用于去除不合法的utf8字符
+                NSData* xmlData = [data dataByHealingUTF8Stream];
+                responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:xmlData error:&serializationError];
+            }else{
+                
+                responseObject = [manager.responseSerializer responseObjectForResponse:task.response data:data error:&serializationError];
+            }
+            
             if (self.downloadFileURL) {
                 responseObject = self.downloadFileURL;
             }
